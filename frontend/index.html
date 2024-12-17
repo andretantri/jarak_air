@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grafik Rekam dan Setting</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container py-5">
+      <h1 class="text-center mb-4">Grafik Rekam</h1>
+
+      <!-- Grafik Rekam -->
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-12">
+          <canvas id="rekamChart"></canvas>
+        </div>
+      </div>
+
+      <h2 class="mt-5">Pengaturan</h2>
+      <div id="setting" class="list-group"></div>
+    </div>
+
+    <script>
+      // Fungsi untuk mengambil data rekam dari API
+      async function fetchRekams() {
+        const response = await fetch("http://localhost:3000/api/rekam");
+        const data = await response.json();
+        return data;
+      }
+
+      // Fungsi untuk mengambil data setting dari API
+      async function fetchSettings() {
+        const response = await fetch("http://localhost:3000/api/setting");
+        const data = await response.json();
+        return data;
+      }
+
+      // Membuat grafik untuk rekam
+      async function createRekamChart() {
+        const rekams = await fetchRekams();
+
+        const labels = rekams.map((rekam) => {
+          // Mengonversi tanggal UTC ke waktu lokal Jakarta
+          const localDate = new Date(rekam.tanggal);
+
+          // Menambahkan waktu (misalnya "20:21:47") ke tanggal lokal
+          const timeParts = rekam.waktu.split(":");
+          localDate.setHours(timeParts[0], timeParts[1], timeParts[2]); // Menambahkan jam, menit, dan detik
+
+          // Mengonversi ke format yang lebih mudah dibaca
+          return localDate.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta",
+          });
+        });
+
+        const data = rekams.map((rekam) => rekam.jarak);
+
+        const ctx = document.getElementById("rekamChart").getContext("2d");
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Jarak (cm)",
+                data: data,
+                borderColor: "rgb(75, 192, 192)",
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Waktu",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Jarak (cm)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Menampilkan pengaturan
+      async function displaySettings() {
+        const settings = await fetchSettings();
+        let settingHtml = "";
+        settings.forEach((setting) => {
+          settingHtml += `
+            <li class="list-group-item">
+              <strong>Warna:</strong> ${setting.warna} <br/>
+              <strong>Rentang:</strong> ${setting.range_min} - ${setting.range_max} cm <br/>
+              <strong>Pesan:</strong> ${setting.pesan}
+            </li>
+          `;
+        });
+        document.getElementById("setting").innerHTML = settingHtml;
+      }
+
+      // Memanggil fungsi untuk membuat grafik dan menampilkan setting
+      createRekamChart();
+      displaySettings();
+    </script>
+
+    <!-- Bootstrap JS (optional, for additional components like dropdowns or modals) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
